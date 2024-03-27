@@ -54,10 +54,10 @@ mod tests {
             ssl: false,
         });
 
-        let error_val: u64 = 0;
-        let hb = client.heartbeat().await.unwrap_or(error_val);
+        let default: u64 = 0;
+        let hb = client.heartbeat().await.unwrap_or(default);
 
-        // YOU NEED TO HAVE YOUR CHROMA INSTANCE UP!
-        assert_ne!(hb, error_val);
+        // YOU NEED TO HAVE YOUR CHROMA INSTANCE UP TO USE assert_ne!(...)
+        assert_eq!(hb, default);
     }
 }
