@@ -1,4 +1,4 @@
-use chroma_rs::client::{ChromaClient, ChromaClientParams};
+use chromadb_rs::client::{ChromaClient, ChromaClientParams};
 use std::{error::Error, result::Result};
 
 #[tokio::main]

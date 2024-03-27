@@ -1,4 +1,4 @@
-//! # Chroma-rs
+//! # Chromadb-rs
 //!
 //! The unofficial lib for [Chroma](https://docs.trychroma.com/) in rust. Chroma-rs uses endpoints of the [chroma db backend](https://docs.trychroma.com/api#backend-api).
 //!
@@ -9,7 +9,7 @@
 //! **Creates a new ChromaClient instance:**
 //!
 //! ```rust
-//! use chroma_rs::{ChromaClient, ChromaClientParams};
+//! use chromadb_rs::client::{ChromaClient, ChromaClientParams};
 //!
 //! let client = ChromaClient::new(ChromaClientParams {
 //!     host: "localhost".to_string(),
