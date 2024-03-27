@@ -86,7 +86,7 @@ impl ChromaClient {
     }
 }
 
-/// The parameters for creating a new client.
+/// The parameters to create a new client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChromaClientParams {
     pub host: String,
@@ -94,14 +94,13 @@ pub struct ChromaClientParams {
     pub ssl: bool,
 }
 
-/// The returned type of a heartbeat from the Chroma API.
 #[derive(Serialize, Deserialize)]
-pub struct HeartbeatResponse {
+struct HeartbeatResponse {
     #[serde(rename = "nanosecond heartbeat")]
     nanosecond_heartbeat: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct CreateCollectionRequest {
     name: String,
     metadata: Option<HashMap<String, String>>,
@@ -132,7 +131,6 @@ mod tests {
         let default: u64 = 0;
         let hb = client.heartbeat().await.unwrap_or(default);
 
-        // YOU NEED TO HAVE YOUR CHROMA INSTANCE UP TO USE assert_ne!(...)
         assert_ne!(hb, default);
     }
 }
