@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+/// Chroma Client instance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChromaClient {
     path: String,
 }
 
 impl ChromaClient {
+    /// Creates a new ChromaClient instance.
     pub fn new(params: ChromaClientParams) -> Self {
         let http = if params.ssl { "https" } else { "http" };
         ChromaClient {
@@ -14,6 +16,7 @@ impl ChromaClient {
         }
     }
 
+    /// Returns a heartbeat from the Chroma API.
     pub async fn heartbeat(&self) -> Result<u64, Box<dyn Error>> {
         let res = reqwest::get(&format!("{}/api/v1/heartbeat", self.path))
             .await?
@@ -22,13 +25,9 @@ impl ChromaClient {
         let body_json: HeartbeatResponse = serde_json::from_str(&res)?;
         Ok(body_json.nanosecond_heartbeat)
     }
-
-    // TODO: change Vec<String> to the proper type etc etc...
-    pub async fn list_collections(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        unimplemented!("Unable to list cols for now...");
-    }
 }
 
+/// The parameters for creating a new client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChromaClientParams {
     pub host: String,
@@ -36,6 +35,7 @@ pub struct ChromaClientParams {
     pub ssl: bool,
 }
 
+/// The returned type of a heartbeat from the Chroma API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeartbeatResponse {
     #[serde(rename = "nanosecond heartbeat")]
