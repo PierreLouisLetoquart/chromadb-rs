@@ -1,7 +1,11 @@
 [package]
-name = "chroma-rs"
+name = "chromadb-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["Pierre-Louis Létoquart <randlgint@proton.me>"]
+homepage = "https://github.com/PierreLouisLetoquart/chroma-rs.git"
+repository = "https://github.com/PierreLouisLetoquart/chroma-rs.git"
+keywords = ["chroma", "chroma-db", "vector-db", "database", "db"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
