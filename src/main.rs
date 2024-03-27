@@ -13,5 +13,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{hb}");
 
+    let new_collection = client.create_collection("creation-test", None).await?;
+
+    println!("{:?}", new_collection);
+
     Ok(())
 }
