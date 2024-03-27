@@ -58,6 +58,6 @@ mod tests {
         let hb = client.heartbeat().await.unwrap_or(default);
 
         // YOU NEED TO HAVE YOUR CHROMA INSTANCE UP TO USE assert_ne!(...)
-        assert_eq!(hb, default);
+        assert_ne!(hb, default);
     }
 }
