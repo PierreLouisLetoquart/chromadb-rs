@@ -1,5 +1,5 @@
 use chromadb_rs::client::{ChromaClient, ChromaClientParams};
-use std::{error::Error, result::Result};
+use std::{error::Error, result::Result, collections::HashMap};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -13,7 +13,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{hb}");
 
-    let new_collection = client.create_collection("creation-test", None).await?;
+    let new_collection = client
+        .create_collection(
+            "crea",
+            Some(HashMap::from([
+                (
+                    "description".to_string(),
+                    "testing collection creation".to_string(),
+                ),
+                ("wtf".to_string(), "hard to deserialize...".to_string()),
+            ])),
+        )
+        .await?;
 
     println!("{:?}", new_collection);
 
