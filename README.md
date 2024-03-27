@@ -6,10 +6,10 @@ The lib is just initialized for now... stay tuned for the first release.
 
 ## Todo
 
-- [ ] Better workflows
+- [x] complete workflow for testing with chroma backend
 - [ ] client api
 - [ ] collections api
-- [ ] `reqwest` headers
+- [ ] add headers for `reqwest` call
 
 ## Rules
 
