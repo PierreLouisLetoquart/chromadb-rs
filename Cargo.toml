@@ -1,6 +1,6 @@
 [package]
 name = "chromadb-rs"
-version = "0.1.2"
+version = "0.1.4"
 edition = "2021"
 authors = ["Pierre-Louis Létoquart <randlgint@proton.me>"]
 description = "The unofficial lib for Chroma vector database in rust"
@@ -15,4 +15,6 @@ keywords = ["chroma", "chroma-db", "vector-db", "database", "db"]
 reqwest = { version = "0.12.2", features = ["json"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
+thiserror = "1.0.58"
 tokio = { version = "1.36.0", features = ["full"] }
+url = "2.5.0"
