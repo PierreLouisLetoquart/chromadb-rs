@@ -36,7 +36,7 @@ impl ChromaClient {
         headers
     }
 
-    /// Returns a heartbeat from the Chroma API.
+    /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, Box<dyn Error>> {
         let res = reqwest::get(&format!("{}/api/v1/heartbeat", self.path))
             .await?
@@ -46,7 +46,7 @@ impl ChromaClient {
         Ok(body_json.nanosecond_heartbeat)
     }
 
-    /// Creates a new collection with the specified properties.
+    /// Create a new collection with the given name and metadata.
     pub async fn create_collection(
         &self,
         name: &str,
@@ -85,7 +85,7 @@ impl ChromaClient {
         })
     }
 
-    /// Get a collection with the specified properties, creates collection if it doesn't exists.
+    /// Get or create a collection with the given name and metadata.
     pub async fn get_or_create_collection(
         &self,
         name: &str,
