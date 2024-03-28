@@ -5,9 +5,7 @@ use std::{error::Error, result::Result};
 async fn main() -> Result<(), Box<dyn Error>> {
     let client = ChromaClient::new(ChromaClientParams::default());
 
-    let _ = client
-        .create_collection("collection-1", None, None, None)
-        .await?;
+    let _ = client.create_collection("collection-1", None).await?;
 
     let coll_2 = client
         .get_or_create_collection(
@@ -22,30 +20,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     "testing get or create fn with metadata...".to_string(),
                 ),
             ])),
-            None,
-            None,
         )
         .await?;
 
-    let _ = client
-        .create_collection("collection-3", None, None, None)
-        .await?;
+    let _ = client.create_collection("collection-3", None).await?;
 
     println!("Example collection : {:?}", coll_2);
 
-    let coll_list = client.list_collections(None, None).await?;
+    let coll_list = client.list_collections().await?;
     assert_eq!(coll_list.len(), 3);
 
-    client.delete_collection("collection-1", None, None).await?;
-    client.delete_collection("collection-2", None, None).await?;
+    client.delete_collection("collection-1").await?;
+    client.delete_collection("collection-2").await?;
 
-    let coll_list = client.list_collections(None, None).await?;
+    let coll_list = client.list_collections().await?;
     assert_eq!(coll_list.len(), 1);
 
-    let coll_3 = client.get_collection("collection-3", None, None).await?;
+    let coll_3 = client.get_collection("collection-3").await?;
     assert_eq!(coll_3.name, "collection-3");
 
-    client.delete_collection("collection-3", None, None).await?;
+    client.delete_collection("collection-3").await?;
 
     Ok(())
 }

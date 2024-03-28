@@ -15,7 +15,7 @@
 //! **Creates a new ChromaClient instance with params:**
 //!
 //! ```rust
-//! use chromadb_rs::client::{ChromaClient, ChromaClientParams};
+//! use chromadb_rs::client::{ChromaClient, ChromaClientParams, Settings};
 //! use reqwest::header::HeaderMap;
 //!
 //! let mut hmap = HeaderMap::new();
@@ -26,6 +26,7 @@
 //!     port: "8000".to_string(),
 //!     ssl: false,
 //!     headers: Some(hmap),
+//!     settings: Some(Settings::default()), // equivalent None
 //! });
 //! ```
 
