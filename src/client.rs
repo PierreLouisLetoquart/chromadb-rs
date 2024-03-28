@@ -98,6 +98,44 @@ impl ChromaClient {
         })
     }
 
+    /// Get a collection with the given name.
+    pub async fn get_collection(
+        &self,
+        name: &str,
+        tenant: Option<&str>,
+        database: Option<&str>,
+    ) -> Result<Collection, ChromaClientError> {
+        let url = Url::parse_with_params(
+            &format!("{}/api/v1/collections/{}", self.path, name),
+            &[
+                ("tenant", tenant.unwrap_or("default_tenant")),
+                ("database", database.unwrap_or("default_database")),
+            ],
+        )
+        .map_err(ChromaClientError::UrlParseError)?;
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .get(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        let response_json: Collection = serde_json::from_str(&response_text)
+            .map_err(|e| ChromaClientError::ResponseParseError(e))?;
+
+        Ok(response_json)
+    }
+
     /// Get or create a collection with the given name and metadata.
     pub async fn get_or_create_collection(
         &self,

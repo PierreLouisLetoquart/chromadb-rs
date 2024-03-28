@@ -42,5 +42,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let coll_list = client.list_collections(None, None).await?;
     assert_eq!(coll_list.len(), 1);
 
+    let coll_3 = client.get_collection("collection-3", None, None).await?;
+    assert_eq!(coll_3.name, "collection-3");
+
+    client.delete_collection("collection-3", None, None).await?;
+
     Ok(())
 }
