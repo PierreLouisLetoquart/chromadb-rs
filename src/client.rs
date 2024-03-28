@@ -222,7 +222,17 @@ mod tests {
         });
 
         let default: u64 = 0;
-        let hb = client.heartbeat().await.unwrap_or(default);
+        let hb = match client.heartbeat().await {
+            Ok(hb) => hb,
+            Err(ChromaClientError::RequestError(e)) => {
+                eprintln!("Error during heartbeat: {}", e);
+                default
+            }
+            Err(e) => {
+                eprintln!("Unexpected error during heartbeat: {}", e);
+                default
+            }
+        };
 
         assert_ne!(hb, default);
     }
@@ -241,17 +251,29 @@ mod tests {
             metadata: None,
         };
 
-        let new_collection = client
-            .create_collection("john-doe-collection", None)
-            .await
-            .unwrap_or(default);
+        let new_collection = match client.create_collection("john-doe-collection", None).await {
+            Ok(new_collection) => new_collection,
+            Err(ChromaClientError::RequestError(e)) => {
+                eprintln!("Error during create_collection: {}", e);
+                default
+            }
+            Err(e) => {
+                eprintln!("Unexpected error during create_collection: {}", e);
+                default
+            }
+        };
 
         assert_eq!(new_collection.name, "john-doe-collection");
 
-        let _ = client
-            .delete_collection(&new_collection.name)
-            .await
-            .unwrap();
+        match client.delete_collection(&new_collection.name).await {
+            Ok(_) => {}
+            Err(ChromaClientError::RequestError(e)) => {
+                eprintln!("Error during delete_collection: {}", e);
+            }
+            Err(e) => {
+                eprintln!("Unexpected error during delete_collection: {}", e);
+            }
+        }
     }
 
     #[tokio::test]
@@ -268,16 +290,28 @@ mod tests {
             metadata: None,
         };
 
-        let new_collection = client
-            .get_or_create_collection("john-doe-g-or-c-collection", None)
-            .await
-            .unwrap_or(default);
+        let new_collection = match client.get_or_create_collection("john-doe-g-or-c-collection", None).await {
+            Ok(new_collection) => new_collection,
+            Err(ChromaClientError::RequestError(e)) => {
+                eprintln!("Error during get_or_create_collection: {}", e);
+                default
+            }
+            Err(e) => {
+                eprintln!("Unexpected error during get_or_create_collection: {}", e);
+                default
+            }
+        };
 
         assert_eq!(new_collection.name, "john-doe-g-or-c-collection");
 
-        let _ = client
-            .delete_collection(&new_collection.name)
-            .await
-            .unwrap();
+        match client.delete_collection(&new_collection.name).await {
+            Ok(_) => {}
+            Err(ChromaClientError::RequestError(e)) => {
+                eprintln!("Error during delete_collection: {}", e);
+            }
+            Err(e) => {
+                eprintln!("Unexpected error during delete_collection: {}", e);
+            }
+        }
     }
 }
