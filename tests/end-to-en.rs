@@ -1,8 +1,8 @@
 use chromadb_rs::client::{ChromaClient, ChromaClientParams};
 use std::{error::Error, result::Result};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::test]
+async fn end_to_end_tests() -> Result<(), Box<dyn Error>> {
     let client = ChromaClient::new(ChromaClientParams::default());
 
     let _ = client.create_collection("collection-1", None).await?;
