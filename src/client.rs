@@ -32,8 +32,28 @@ impl ChromaClient {
         }
     }
 
+    async fn check_pre_flight_status(&self) -> Result<(), ChromaClientError> {
+        let res = self
+            .client
+            .get(&format!("{}/api/v1/pre-flight-checks", self.path))
+            .headers(self.headers.clone())
+            .send()
+            .await
+            .map_err(|e| ChromaClientError::RequestError(e))?;
+
+        let status = res.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let error_message = format!("Preflight request failed, status: {}", status);
+            Err(ChromaClientError::PreflightError(error_message))
+        }
+    }
+
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let res = self
             .client
             .get(&format!("{}/api/v1/heartbeat", self.path))
@@ -59,6 +79,8 @@ impl ChromaClient {
         name: &str,
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Collection, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
@@ -104,6 +126,8 @@ impl ChromaClient {
 
     /// Get a collection with the given name.
     pub async fn get_collection(&self, name: &str) -> Result<Collection, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections/{}", self.path, name),
             &[
@@ -141,6 +165,8 @@ impl ChromaClient {
         name: &str,
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Collection, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
@@ -186,6 +212,8 @@ impl ChromaClient {
 
     /// Delete a collection with the given name.
     pub async fn delete_collection(&self, name: &str) -> Result<(), ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = format!(
             "{}/api/v1/collections/{}?tenant={}&database={}",
             self.path, name, self.tenant, self.database
@@ -216,6 +244,8 @@ impl ChromaClient {
 
     /// List all collections.
     pub async fn list_collections(&self) -> Result<Vec<Collection>, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = format!(
             "{}/api/v1/collections?tenant={}&database={}",
             self.path, self.tenant, self.database
@@ -253,6 +283,8 @@ impl ChromaClient {
 
     /// Resets the database. This will delete all collections and entries.
     pub async fn reset(&self) -> Result<(), ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
         let url = format!("{}/api/v1/reset", self.path);
 
         let mut headers = self.headers.clone();
@@ -275,6 +307,26 @@ impl ChromaClient {
             );
             Err(ChromaClientError::ResponseStatusError(error_message))
         }
+    }
+
+    /// Get the version of Chroma.
+    pub async fn version(&self) -> Result<String, ChromaClientError> {
+        self.check_pre_flight_status().await?;
+
+        let res = self
+            .client
+            .get(&format!("{}/api/v1/version", self.path))
+            .headers(self.headers.clone())
+            .send()
+            .await
+            .map_err(|e| ChromaClientError::RequestError(e))?;
+
+        let res_text = res
+            .text()
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        Ok(res_text)
     }
 }
 
