@@ -190,6 +190,18 @@ pub struct ChromaClientParams {
     pub headers: Option<HeaderMap>,
 }
 
+impl ChromaClientParams {
+    /// The default parameters for a Chroma Client.
+    pub fn default() -> Self {
+        ChromaClientParams {
+            host: String::from("localhost"),
+            port: String::from("8000"),
+            ssl: false,
+            headers: None,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct HeartbeatResponse {
     #[serde(rename = "nanosecond heartbeat")]
