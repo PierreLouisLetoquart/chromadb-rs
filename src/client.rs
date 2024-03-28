@@ -21,12 +21,14 @@ impl ChromaClient {
     /// Creates a new ChromaClient instance.
     pub fn new(params: ChromaClientParams) -> Self {
         let http = if params.ssl { "https" } else { "http" };
+        let mut headers = params.headers.unwrap_or(HeaderMap::new());
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
         let settings = params.settings.unwrap_or(Settings::default());
 
         ChromaClient {
             path: format!("{}://{}:{}", http, params.host, params.port),
             client: Client::new(),
-            headers: params.headers.unwrap_or(HeaderMap::new()),
+            headers,
             tenant: settings.tenant,
             database: settings.database,
         }
@@ -50,13 +52,29 @@ impl ChromaClient {
         }
     }
 
+    fn get_url(&self, path: &str) -> Result<Url, ChromaClientError> {
+        Url::parse(&format!("{}/{}", self.path, path)).map_err(ChromaClientError::UrlParseError)
+    }
+
+    fn get_url_with_params(&self, path: &str) -> Result<Url, ChromaClientError> {
+        Url::parse_with_params(
+            &format!("{}/{}", self.path, path),
+            &[
+                ("tenant", self.tenant.clone()),
+                ("database", self.database.clone()),
+            ],
+        )
+        .map_err(ChromaClientError::UrlParseError)
+    }
+
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
         self.check_pre_flight_status().await?;
+        let url = self.get_url("api/v1/heartbeat")?;
 
         let res = self
             .client
-            .get(&format!("{}/api/v1/heartbeat", self.path))
+            .get(url)
             .headers(self.headers.clone())
             .send()
             .await
@@ -80,18 +98,9 @@ impl ChromaClient {
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Collection, ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = Url::parse_with_params(
-            &format!("{}/api/v1/collections", self.path),
-            &[
-                ("tenant", self.tenant.clone()),
-                ("database", self.database.clone()),
-            ],
-        )
-        .map_err(ChromaClientError::UrlParseError)?;
+        let url = self.get_url_with_params("api/v1/collections")?;
 
         let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let request_body = CreateCollectionRequest {
@@ -127,23 +136,12 @@ impl ChromaClient {
     /// Get a collection with the given name.
     pub async fn get_collection(&self, name: &str) -> Result<Collection, ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = Url::parse_with_params(
-            &format!("{}/api/v1/collections/{}", self.path, name),
-            &[
-                ("tenant", self.tenant.clone()),
-                ("database", self.database.clone()),
-            ],
-        )
-        .map_err(ChromaClientError::UrlParseError)?;
-
-        let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
+        let url = self.get_url_with_params(&format!("api/v1/collections/{}", name))?;
 
         let response = self
             .client
             .get(url)
-            .headers(headers)
+            .headers(self.headers.clone())
             .send()
             .await
             .map_err(ChromaClientError::RequestError)?;
@@ -166,18 +164,9 @@ impl ChromaClient {
         metadata: Option<HashMap<String, String>>,
     ) -> Result<Collection, ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = Url::parse_with_params(
-            &format!("{}/api/v1/collections", self.path),
-            &[
-                ("tenant", self.tenant.clone()),
-                ("database", self.database.clone()),
-            ],
-        )
-        .map_err(ChromaClientError::UrlParseError)?;
+        let url = self.get_url_with_params("api/v1/collections")?;
 
         let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let request_body = CreateCollectionRequest {
@@ -213,14 +202,9 @@ impl ChromaClient {
     /// Delete a collection with the given name.
     pub async fn delete_collection(&self, name: &str) -> Result<(), ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = format!(
-            "{}/api/v1/collections/{}?tenant={}&database={}",
-            self.path, name, self.tenant, self.database
-        );
+        let url = self.get_url_with_params(&format!("api/v1/collections/{}", name))?;
 
         let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let response = self
@@ -245,19 +229,12 @@ impl ChromaClient {
     /// List all collections.
     pub async fn list_collections(&self) -> Result<Vec<Collection>, ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = format!(
-            "{}/api/v1/collections?tenant={}&database={}",
-            self.path, self.tenant, self.database
-        );
-
-        let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
+        let url = self.get_url_with_params("api/v1/collections")?;
 
         let response = self
             .client
             .get(url)
-            .headers(headers)
+            .headers(self.headers.clone())
             .send()
             .await
             .map_err(ChromaClientError::RequestError)?;
@@ -284,16 +261,12 @@ impl ChromaClient {
     /// Resets the database. This will delete all collections and entries.
     pub async fn reset(&self) -> Result<(), ChromaClientError> {
         self.check_pre_flight_status().await?;
-
-        let url = format!("{}/api/v1/reset", self.path);
-
-        let mut headers = self.headers.clone();
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
+        let url = self.get_url("api/v1/reset")?;
 
         let response = self
             .client
             .post(url)
-            .headers(headers)
+            .headers(self.headers.clone())
             .send()
             .await
             .map_err(ChromaClientError::RequestError)?;
@@ -312,10 +285,11 @@ impl ChromaClient {
     /// Get the version of Chroma.
     pub async fn version(&self) -> Result<String, ChromaClientError> {
         self.check_pre_flight_status().await?;
+        let url = self.get_url("api/v1/version")?;
 
         let res = self
             .client
-            .get(&format!("{}/api/v1/version", self.path))
+            .get(url)
             .headers(self.headers.clone())
             .send()
             .await
