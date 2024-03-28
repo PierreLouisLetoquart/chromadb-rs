@@ -85,6 +85,7 @@ impl ChromaClient {
         })
     }
 
+    /// Delete a collection with the given name.
     pub async fn delete_collection(&self, name: &str) -> Result<(), Box<dyn Error>> {
         let url = format!(
             "{}/api/v1/collections/{}?tenant={}&database={}",
