@@ -93,11 +93,10 @@ impl ChromaClient {
         let response_json: CreateCollectionResponse = serde_json::from_str(&response_text)
             .map_err(|e| ChromaClientError::ResponseParseError(e))?;
 
-        // TODO: unwrap properly the metadata !
         Ok(Collection {
             name: response_json.name,
             id: response_json.id,
-            metadata: None,
+            metadata: response_json.metadata,
         })
     }
 
@@ -143,11 +142,10 @@ impl ChromaClient {
         let response_json: CreateCollectionResponse = serde_json::from_str(&response_text)
             .map_err(|e| ChromaClientError::ResponseParseError(e))?;
 
-        // TODO: unwrap properly the metadata !
         Ok(Collection {
             name: response_json.name,
             id: response_json.id,
-            metadata: None,
+            metadata: response_json.metadata,
         })
     }
 
