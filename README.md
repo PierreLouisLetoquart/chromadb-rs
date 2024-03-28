@@ -2,6 +2,8 @@
 
 This is a Rust library for interacting with the ChromaDB vector database. It's intended for learning and educational purposes. For a more advanced library, please check out [chromadb](https://crates.io/crates/chromadb).
 
+> The asynchronous example uses [Tokio](https://docs.rs/tokio/latest/tokio/) crate.
+
 ## 1. Running the Backend
 
 Here's how to run the ChromaDB backend using Docker:
@@ -29,23 +31,15 @@ docker run \
 
 ## 2. Default Client
 
-> This asynchronous example uses [Tokio](https://docs.rs/tokio/latest/tokio/) crate.
-
 Here's a basic example of how to create a default client:
 
 ```rust
 use chromadb_rs::client::{ChromaClient, ChromaClientParams};
 
 let client = ChromaClient::new(ChromaClientParams::default());
-
-let hb = client.heartbeat().await?;
-
-println!("{hb}");
 ```
 
 ## 3. Advanced Client
-
-> This asynchronous example uses [Tokio](https://docs.rs/tokio/latest/tokio/) crate.
 
 For more advanced usage, you can create a client with custom parameters:
 
@@ -53,38 +47,67 @@ For more advanced usage, you can create a client with custom parameters:
 let mut hmap = HeaderMap::new();
 hmap.insert("X-Chroma-Token", "test-token".parse().unwrap());
 
+let settings = Settings {
+    tenant: "my-tenant".to_string(),
+    database: "my-database".to_string(),
+}
+
 let client = ChromaClient::new(ChromaClientParams {
     host: "localhost".to_string(),
     port: "8000".to_string(),
     ssl: false,
     headers: Some(hmap),
+    settings: Some(settings), // Some(Settings::default()) for default settings
 });
 ```
 
-## 4. Create and Delete Collections
+## 4. Chroma client methods
 
-Here's how to create and delete a collection:
+- Heartbeat:
 
 ```rust
+let hb = client.heartbeat().await?;
+```
+
+- Get all collections:
+
+```rust
+let collections = client.list_collections().await?;
+```
+
+- Create a collection without metadata:
+
+```rust
+let new_collection = client.create_collection("test-name", None).await?;
+```
+
+- Create a collection with metadata:
+
+```rust
+let mut metadata = HashMap::new();
+metadata.insert("key1", "value1");
+metadata.insert("key2", "value2");
+
 let new_collection = client
-    .create_collection(
-        "crea",
-        Some(HashMap::from([
-            (
-                "description".to_string(),
-                "my first collection into a vector db".to_string(),
-            ),
-            (
-                "other".to_string(),
-                "metadata are hard to deserialize...".to_string()
-            ),
-        ])),
-    )
-    .await?;
+    .create_collection("test-name", Some(metadata)).await?;
+```
 
-println!("{:?}", new_collection);
+- Create a collection using get or create:
 
-let _ = client.delete_collection("crea").await?;
+```rust
+let new_collection = client.get_or_create_collection("test-name", None).await?;
+```
+
+- Get a collection:
+
+```rust
+let collection = client.get_collection("test-name").await?;
+```
+
+- Delete a collection:
+
+```rust
+let deleted_collection = client.delete_collection("test-name").await?;
 ```
 
 ## Contributing

@@ -1,34 +1,24 @@
-//! # Chromadb-rs
+//! Welcome to the Chromadb-rs Rust Library! This library allows you to interact with the ChromaDB vector database in Rust.
 //!
-//! Currently the lib is a work in progress... check out the [github repo](https://github.com/PierreLouisLetoquart/chroma-rs) to contribute.
+//! !!! Disclaimer : It's designed for learning and educational purposes. A more advanced library exists, check out [chromadb](https://crates.io/crates/chromadb).
 //!
-//! ## Chroma client
+//! Here's a quick guide on how to use this library:
 //!
-//! **Creates a new ChromaClient instance:**
+//! 1. **Run the Backend:** You can run the ChromaDB backend using Docker. For default configuration, use `docker pull chromadb/chroma` and `docker run -p 8000:8000 chromadb/chroma`. For auth using token and persistent storage, use the provided commands.
 //!
-//! ```rust
-//! use chromadb_rs::client::{ChromaClient, ChromaClientParams};
+//! 2. **Create a Default Client:** You can create a default client like this: `let client = ChromaClient::new(ChromaClientParams::default());`.
 //!
-//! let client = ChromaClient::new(ChromaClientParams::default());
-//! ```
+//! 3. **Create an Advanced Client:** For more advanced usage, you can create a client with custom parameters. Check out the example in the README.
 //!
-//! **Creates a new ChromaClient instance with params:**
+//! 4. **Use Chroma Client Methods:** The library provides methods like heartbeat, list collections, create collection, get or create collection, get collection, and delete collection. Check out the examples in the README.
 //!
-//! ```rust
-//! use chromadb_rs::client::{ChromaClient, ChromaClientParams, Settings};
-//! use reqwest::header::HeaderMap;
+//! For more detailed examples and usage, please check out the [GitHub repository](https://github.com/chroma-core/chromadb-rs).
 //!
-//! let mut hmap = HeaderMap::new();
-//! hmap.insert("X-Chroma-Token", "test-token".parse().unwrap());
+//! We welcome contributions! If you'd like to contribute, please open an issue first to discuss your changes.
 //!
-//! let client = ChromaClient::new(ChromaClientParams {
-//!     host: "localhost".to_string(),
-//!     port: "8000".to_string(),
-//!     ssl: false,
-//!     headers: Some(hmap),
-//!     settings: Some(Settings::default()), // equivalent None
-//! });
-//! ```
+//! This project is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
+//!
+//! Happy coding! 😊
 
 pub mod client;
 pub mod collection;
