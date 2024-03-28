@@ -101,11 +101,16 @@ impl ChromaClient {
         &self,
         name: &str,
         metadata: Option<HashMap<String, String>>,
-    ) -> Result<Collection, Box<dyn Error>> {
-        let url = format!(
-            "{}/api/v1/collections?tenant={}&database={}",
-            self.path, self.tenant, self.database
-        );
+    ) -> Result<Collection, ChromaClientError> {
+        let url = Url::parse_with_params(
+            &format!("{}/api/v1/collections", self.path),
+            &[
+                ("tenant", self.tenant.as_str()),
+                ("database", self.database.as_str()),
+            ],
+        )
+        .map_err(ChromaClientError::UrlParseError)?;
+
 
         let headers = Self::req_headers();
 
@@ -121,11 +126,16 @@ impl ChromaClient {
             .headers(headers)
             .json(&request)
             .send()
-            .await?
-            .text()
-            .await?;
+            .await
+            .map_err(ChromaClientError::RequestError)?;
 
-        let response_json: CreateCollectionResponse = serde_json::from_str(&response)?;
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        let response_json: CreateCollectionResponse = serde_json::from_str(&response_text)
+            .map_err(|e| ChromaClientError::ResponseParseError(e))?;
 
         // TODO: unwrap properly the metadata !
         Ok(Collection {
