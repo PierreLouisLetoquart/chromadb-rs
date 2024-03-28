@@ -301,6 +301,14 @@ impl ChromaClient {
 
         Ok(res_text)
     }
+
+    /// Get the settings used to initialize the client.
+    pub fn get_settings(&self) -> Settings {
+        Settings {
+            tenant: self.tenant.clone(),
+            database: self.database.clone(),
+        }
+    }
 }
 
 /// The parameters to create a new client.
