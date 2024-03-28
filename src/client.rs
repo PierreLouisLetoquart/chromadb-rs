@@ -30,15 +30,6 @@ impl ChromaClient {
         }
     }
 
-    fn req_headers() -> HeaderMap {
-        let mut headers = HeaderMap::new();
-
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
-        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-
-        headers
-    }
-
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
         let res = self
@@ -76,6 +67,7 @@ impl ChromaClient {
         .map_err(ChromaClientError::UrlParseError)?;
 
         let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let request_body = CreateCollectionRequest {
@@ -124,9 +116,11 @@ impl ChromaClient {
         )
         .map_err(ChromaClientError::UrlParseError)?;
 
-        let headers = Self::req_headers();
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
-        let request = CreateCollectionRequest {
+        let request_body = CreateCollectionRequest {
             name: name.to_string(),
             metadata: Some(metadata).unwrap_or(None),
             get_or_create: true,
@@ -136,7 +130,7 @@ impl ChromaClient {
             .client
             .post(url)
             .headers(headers)
-            .json(&request)
+            .json(&request_body)
             .send()
             .await
             .map_err(ChromaClientError::RequestError)?;
@@ -164,7 +158,9 @@ impl ChromaClient {
             self.path, name, self.tenant, self.database
         );
 
-        let headers = Self::req_headers();
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
         let response = self
             .client
