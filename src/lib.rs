@@ -15,6 +15,7 @@
 //!     host: "localhost".to_string(),
 //!     port: "8000".to_string(),
 //!     ssl: false,
+//!     headers: None,
 //! });
 //! ```
 //!

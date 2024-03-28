@@ -7,6 +7,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         host: "localhost".to_string(),
         port: "8000".to_string(),
         ssl: false,
+        headers: None,
     });
 
     let hb = client.heartbeat().await?;

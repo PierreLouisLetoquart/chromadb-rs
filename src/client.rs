@@ -14,6 +14,7 @@ pub struct ChromaClient {
     tenant: String,
     database: String,
     client: Client,
+    headers: HeaderMap,
 }
 
 impl ChromaClient {
@@ -25,6 +26,7 @@ impl ChromaClient {
             tenant: String::from("default_tenant"),
             database: String::from("default_database"),
             client: Client::new(),
+            headers: params.headers.unwrap_or(HeaderMap::new()),
         }
     }
 
@@ -39,7 +41,9 @@ impl ChromaClient {
 
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
-        let res = reqwest::get(&format!("{}/api/v1/heartbeat", self.path))
+        let res = self.client.get(&format!("{}/api/v1/heartbeat", self.path))
+            .headers(self.headers.clone())
+            .send()
             .await
             .map_err(|e| ChromaClientError::RequestError(e))?;
 
@@ -180,11 +184,11 @@ impl ChromaClient {
 }
 
 /// The parameters to create a new client.
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChromaClientParams {
     pub host: String,
     pub port: String,
     pub ssl: bool,
+    pub headers: Option<HeaderMap>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -219,6 +223,7 @@ mod tests {
             host: "localhost".to_string(),
             port: "8000".to_string(),
             ssl: false,
+            headers: None,
         });
 
         let default: u64 = 0;
@@ -243,6 +248,7 @@ mod tests {
             host: "localhost".to_string(),
             port: "8000".to_string(),
             ssl: false,
+            headers: None,
         });
 
         let default = Collection {
@@ -282,6 +288,7 @@ mod tests {
             host: "localhost".to_string(),
             port: "8000".to_string(),
             ssl: false,
+            headers: None,
         });
 
         let default = Collection {
