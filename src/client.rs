@@ -11,22 +11,24 @@ use url::Url;
 #[derive(Debug, Clone)]
 pub struct ChromaClient {
     path: String,
-    tenant: String,
-    database: String,
     client: Client,
     headers: HeaderMap,
+    tenant: String,
+    database: String,
 }
 
 impl ChromaClient {
     /// Creates a new ChromaClient instance.
     pub fn new(params: ChromaClientParams) -> Self {
         let http = if params.ssl { "https" } else { "http" };
+        let settings = params.settings.unwrap_or(Settings::default());
+
         ChromaClient {
             path: format!("{}://{}:{}", http, params.host, params.port),
-            tenant: String::from("default_tenant"),
-            database: String::from("default_database"),
             client: Client::new(),
             headers: params.headers.unwrap_or(HeaderMap::new()),
+            tenant: settings.tenant,
+            database: settings.database,
         }
     }
 
@@ -60,8 +62,8 @@ impl ChromaClient {
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
-                ("tenant", self.tenant.as_str()),
-                ("database", self.database.as_str()),
+                ("tenant", self.tenant.clone()),
+                ("database", self.database.clone()),
             ],
         )
         .map_err(ChromaClientError::UrlParseError)?;
@@ -100,6 +102,39 @@ impl ChromaClient {
         })
     }
 
+    /// Get a collection with the given name.
+    pub async fn get_collection(&self, name: &str) -> Result<Collection, ChromaClientError> {
+        let url = Url::parse_with_params(
+            &format!("{}/api/v1/collections/{}", self.path, name),
+            &[
+                ("tenant", self.tenant.clone()),
+                ("database", self.database.clone()),
+            ],
+        )
+        .map_err(ChromaClientError::UrlParseError)?;
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .get(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        let response_json: Collection = serde_json::from_str(&response_text)
+            .map_err(|e| ChromaClientError::ResponseParseError(e))?;
+
+        Ok(response_json)
+    }
+
     /// Get or create a collection with the given name and metadata.
     pub async fn get_or_create_collection(
         &self,
@@ -109,8 +144,8 @@ impl ChromaClient {
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
-                ("tenant", self.tenant.as_str()),
-                ("database", self.database.as_str()),
+                ("tenant", self.tenant.clone()),
+                ("database", self.database.clone()),
             ],
         )
         .map_err(ChromaClientError::UrlParseError)?;
@@ -175,7 +210,70 @@ impl ChromaClient {
                 "Failed to delete collection with status code: {}",
                 response.status()
             );
-            Err(ChromaClientError::DeleteCollectionError(error_message))
+            Err(ChromaClientError::ResponseStatusError(error_message))
+        }
+    }
+
+    /// List all collections.
+    pub async fn list_collections(&self) -> Result<Vec<Collection>, ChromaClientError> {
+        let url = format!(
+            "{}/api/v1/collections?tenant={}&database={}",
+            self.path, self.tenant, self.database
+        );
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .get(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        if response.status().is_success() {
+            let response_text = response
+                .text()
+                .await
+                .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+            let response_json: ListCollectionsResponse = serde_json::from_str(&response_text)
+                .map_err(|e| ChromaClientError::ResponseParseError(e))?;
+
+            Ok(response_json)
+        } else {
+            let error_message = format!(
+                "Failed to list collections with status code: {}",
+                response.status()
+            );
+            Err(ChromaClientError::ResponseStatusError(error_message))
+        }
+    }
+
+    /// Resets the database. This will delete all collections and entries.
+    pub async fn reset(&self) -> Result<(), ChromaClientError> {
+        let url = format!("{}/api/v1/reset", self.path);
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .post(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let error_message = format!(
+                "Failed to reset with status code: {} - make sure `ALLOW_RESET=TRUE`",
+                response.status()
+            );
+            Err(ChromaClientError::ResponseStatusError(error_message))
         }
     }
 }
@@ -186,6 +284,13 @@ pub struct ChromaClientParams {
     pub port: String,
     pub ssl: bool,
     pub headers: Option<HeaderMap>,
+    pub settings: Option<Settings>,
+}
+
+/// The settings for a client.
+pub struct Settings {
+    pub tenant: String,
+    pub database: String,
 }
 
 impl ChromaClientParams {
@@ -196,7 +301,30 @@ impl ChromaClientParams {
             port: String::from("8000"),
             ssl: false,
             headers: None,
+            settings: Some(Settings::default()),
         }
+    }
+}
+
+impl Default for ChromaClientParams {
+    fn default() -> Self {
+        ChromaClientParams::default()
+    }
+}
+
+impl Settings {
+    /// The default settings for a Chroma Client.
+    pub fn default() -> Self {
+        Settings {
+            tenant: String::from("default_tenant"),
+            database: String::from("default_database"),
+        }
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings::default()
     }
 }
 
@@ -222,18 +350,16 @@ struct CreateCollectionResponse {
     database: String,
 }
 
+// No need to derive Deserialize for a Vec
+type ListCollectionsResponse = Vec<Collection>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[tokio::test]
     async fn heartbeat() {
-        let client = ChromaClient::new(ChromaClientParams {
-            host: "localhost".to_string(),
-            port: "8000".to_string(),
-            ssl: false,
-            headers: None,
-        });
+        let client = ChromaClient::new(ChromaClientParams::default());
 
         let default: u64 = 0;
         let hb = match client.heartbeat().await {
@@ -253,12 +379,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_and_delete() {
-        let client = ChromaClient::new(ChromaClientParams {
-            host: "localhost".to_string(),
-            port: "8000".to_string(),
-            ssl: false,
-            headers: None,
-        });
+        let client = ChromaClient::new(ChromaClientParams::default());
 
         let default = Collection {
             name: "default-collection".into(),
@@ -293,12 +414,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_or_create_and_delete() {
-        let client = ChromaClient::new(ChromaClientParams {
-            host: "localhost".to_string(),
-            port: "8000".to_string(),
-            ssl: false,
-            headers: None,
-        });
+        let client = ChromaClient::new(ChromaClientParams::default());
 
         let default = Collection {
             name: "default-collection".into(),

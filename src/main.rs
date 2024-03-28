@@ -1,41 +1,45 @@
 use chromadb_rs::client::{ChromaClient, ChromaClientParams};
-use reqwest::header::HeaderMap;
-use std::{collections::HashMap, error::Error, result::Result};
+use std::{error::Error, result::Result};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // headers are optional, here is an example with token auth.
-    // checkout https://docs.trychroma.com/usage-guide#static-api-token-authentication for more!
-    let mut hmap = HeaderMap::new();
-    hmap.insert("X-Chroma-Token", "test-token".parse().unwrap());
+    let client = ChromaClient::new(ChromaClientParams::default());
 
-    let client = ChromaClient::new(ChromaClientParams {
-        host: "localhost".to_string(),
-        port: "8000".to_string(),
-        ssl: false,
-        headers: Some(hmap),
-    });
+    let _ = client.create_collection("collection-1", None).await?;
 
-    let hb = client.heartbeat().await?;
-
-    println!("{hb}");
-
-    let new_collection = client
-        .create_collection(
-            "crea",
-            Some(HashMap::from([
+    let coll_2 = client
+        .get_or_create_collection(
+            "collection-2",
+            Some(std::collections::HashMap::from([
                 (
                     "description".to_string(),
-                    "testing collection creation".to_string(),
+                    "my first collection into a vector db".to_string(),
                 ),
-                ("wtf".to_string(), "hard to deserialize...".to_string()),
+                (
+                    "other-metadata".to_string(),
+                    "testing get or create fn with metadata...".to_string(),
+                ),
             ])),
         )
         .await?;
 
-    println!("{:?}", new_collection);
+    let _ = client.create_collection("collection-3", None).await?;
 
-    let _ = client.delete_collection("crea").await?;
+    println!("Example collection : {:?}", coll_2);
+
+    let coll_list = client.list_collections().await?;
+    assert_eq!(coll_list.len(), 3);
+
+    client.delete_collection("collection-1").await?;
+    client.delete_collection("collection-2").await?;
+
+    let coll_list = client.list_collections().await?;
+    assert_eq!(coll_list.len(), 1);
+
+    let coll_3 = client.get_collection("collection-3").await?;
+    assert_eq!(coll_3.name, "collection-3");
+
+    client.delete_collection("collection-3").await?;
 
     Ok(())
 }

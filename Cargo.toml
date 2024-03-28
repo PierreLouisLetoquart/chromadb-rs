@@ -1,6 +1,6 @@
 [package]
 name = "chromadb-rs"
-version = "0.1.4"
+version = "0.1.6"
 edition = "2021"
 authors = ["Pierre-Louis Létoquart <randlgint@proton.me>"]
 description = "The unofficial lib for Chroma vector database in rust"
