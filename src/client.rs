@@ -111,7 +111,6 @@ impl ChromaClient {
         )
         .map_err(ChromaClientError::UrlParseError)?;
 
-
         let headers = Self::req_headers();
 
         let request = CreateCollectionRequest {
@@ -146,7 +145,7 @@ impl ChromaClient {
     }
 
     /// Delete a collection with the given name.
-    pub async fn delete_collection(&self, name: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn delete_collection(&self, name: &str) -> Result<(), ChromaClientError> {
         let url = format!(
             "{}/api/v1/collections/{}?tenant={}&database={}",
             self.path, name, self.tenant, self.database
@@ -154,12 +153,22 @@ impl ChromaClient {
 
         let headers = Self::req_headers();
 
-        let response = self.client.delete(url).headers(headers).send().await?;
+        let response = self
+            .client
+            .delete(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
 
         if response.status().is_success() {
             Ok(())
         } else {
-            Err("Unable to delete collection".into())
+            let error_message = format!(
+                "Failed to delete collection with status code: {}",
+                response.status()
+            );
+            Err(ChromaClientError::DeleteCollectionError(error_message))
         }
     }
 }
