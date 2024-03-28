@@ -43,11 +43,10 @@ impl ChromaClient {
             .await
             .map_err(|e| ChromaClientError::RequestError(e))?;
 
-        let status = res.status();
-        if status.is_success() {
+        if res.status().is_success() {
             Ok(())
         } else {
-            let error_message = format!("Preflight request failed, status: {}", status);
+            let error_message = format!("Preflight request failed, status: {}", res.status());
             Err(ChromaClientError::PreflightError(error_message))
         }
     }
@@ -313,15 +312,8 @@ pub struct ChromaClientParams {
     pub settings: Option<Settings>,
 }
 
-/// The settings for a client.
-pub struct Settings {
-    pub tenant: String,
-    pub database: String,
-}
-
-impl ChromaClientParams {
-    /// The default parameters for a Chroma Client.
-    pub fn default() -> Self {
+impl Default for ChromaClientParams {
+    fn default() -> Self {
         ChromaClientParams {
             host: String::from("localhost"),
             port: String::from("8000"),
@@ -332,25 +324,18 @@ impl ChromaClientParams {
     }
 }
 
-impl Default for ChromaClientParams {
-    fn default() -> Self {
-        ChromaClientParams::default()
-    }
-}
-
-impl Settings {
-    /// The default settings for a Chroma Client.
-    pub fn default() -> Self {
-        Settings {
-            tenant: String::from("default_tenant"),
-            database: String::from("default_database"),
-        }
-    }
+/// The settings for a client.
+pub struct Settings {
+    pub tenant: String,
+    pub database: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings::default()
+        Settings {
+            tenant: String::from("default_tenant"),
+            database: String::from("default_database"),
+        }
     }
 }
 
