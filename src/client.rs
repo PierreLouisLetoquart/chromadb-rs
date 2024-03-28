@@ -75,9 +75,10 @@ impl ChromaClient {
         )
         .map_err(ChromaClientError::UrlParseError)?;
 
-        let headers = Self::req_headers();
+        let mut headers = self.headers.clone();
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
 
-        let request = CreateCollectionRequest {
+        let request_body = CreateCollectionRequest {
             name: name.to_string(),
             metadata: Some(metadata).unwrap_or(None),
             get_or_create: false,
@@ -87,7 +88,7 @@ impl ChromaClient {
             .client
             .post(url)
             .headers(headers)
-            .json(&request)
+            .json(&request_body)
             .send()
             .await
             .map_err(ChromaClientError::RequestError)?;
