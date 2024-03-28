@@ -183,7 +183,76 @@ impl ChromaClient {
                 "Failed to delete collection with status code: {}",
                 response.status()
             );
-            Err(ChromaClientError::DeleteCollectionError(error_message))
+            Err(ChromaClientError::ResponseStatusError(error_message))
+        }
+    }
+
+    /// List all collections.
+    pub async fn list_collections(
+        &self,
+        tenant: Option<&str>,
+        database: Option<&str>,
+    ) -> Result<Vec<Collection>, ChromaClientError> {
+        let url = format!(
+            "{}/api/v1/collections?tenant={}&database={}",
+            self.path,
+            tenant.unwrap_or("default_tenant"),
+            database.unwrap_or("default_database")
+        );
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .get(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        if response.status().is_success() {
+            let response_text = response
+                .text()
+                .await
+                .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+            let response_json: ListCollectionsResponse = serde_json::from_str(&response_text)
+                .map_err(|e| ChromaClientError::ResponseParseError(e))?;
+
+            Ok(response_json)
+        } else {
+            let error_message = format!(
+                "Failed to list collections with status code: {}",
+                response.status()
+            );
+            Err(ChromaClientError::ResponseStatusError(error_message))
+        }
+    }
+
+    /// Resets the database. This will delete all collections and entries.
+    pub async fn reset(&self) -> Result<(), ChromaClientError> {
+        let url = format!("{}/api/v1/reset", self.path);
+
+        let mut headers = self.headers.clone();
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
+
+        let response = self
+            .client
+            .post(url)
+            .headers(headers)
+            .send()
+            .await
+            .map_err(ChromaClientError::RequestError)?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let error_message = format!(
+                "Failed to reset with status code: {} - make sure `ALLOW_RESET=TRUE`",
+                response.status()
+            );
+            Err(ChromaClientError::ResponseStatusError(error_message))
         }
     }
 }
@@ -229,6 +298,9 @@ struct CreateCollectionResponse {
     tenant: String,
     database: String,
 }
+
+// No need to derive Deserialize for a Vec
+type ListCollectionsResponse = Vec<Collection>;
 
 #[cfg(test)]
 mod tests {

@@ -10,6 +10,6 @@ pub enum ChromaClientError {
     ResponseError(reqwest::Error),
     #[error("Unable to parse into json response: {0}")]
     ResponseParseError(serde_json::Error),
-    #[error("Unable to delete collection: {0}")]
-    DeleteCollectionError(String),
+    #[error("Respond with a bad status: {0}")]
+    ResponseStatusError(String),
 }
