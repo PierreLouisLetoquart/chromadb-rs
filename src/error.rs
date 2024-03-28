@@ -12,4 +12,6 @@ pub enum ChromaClientError {
     ResponseParseError(serde_json::Error),
     #[error("Respond with a bad status: {0}")]
     ResponseStatusError(String),
+    #[error("Preflight request failed, status: {0}")]
+    PreflightError(String),
 }
