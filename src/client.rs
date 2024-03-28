@@ -85,6 +85,46 @@ impl ChromaClient {
         })
     }
 
+    /// Get a collection with the specified properties, creates collection if it doesn't exists.
+    pub async fn get_or_create_collection(
+        &self,
+        name: &str,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Result<Collection, Box<dyn Error>> {
+        let url = format!(
+            "{}/api/v1/collections?tenant={}&database={}",
+            self.path, self.tenant, self.database
+        );
+
+        let headers = Self::req_headers();
+
+        let request = CreateCollectionRequest {
+            name: name.to_string(),
+            metadata: Some(metadata).unwrap_or(None),
+            get_or_create: true,
+        };
+
+        let response = self
+            .client
+            .post(url)
+            .headers(headers)
+            .json(&request)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        let response_json: CreateCollectionResponse = serde_json::from_str(&response)?;
+
+        // TODO: unwrap properly the metadata !
+        Ok(Collection {
+            name: response_json.name,
+            id: response_json.id,
+            metadata: None,
+        })
+    }
+
+
     /// Delete a collection with the given name.
     pub async fn delete_collection(&self, name: &str) -> Result<(), Box<dyn Error>> {
         let url = format!(
@@ -175,4 +215,29 @@ mod tests {
 
         let _ = client.delete_collection(&new_collection.name).await.unwrap();
     }
+
+    #[tokio::test]
+    async fn get_or_create_and_delete() {
+        let client = ChromaClient::new(ChromaClientParams {
+            host: "localhost".to_string(),
+            port: "8000".to_string(),
+            ssl: false,
+        });
+
+        let default = Collection {
+            name: "default-collection".into(),
+            id: "null".into(),
+            metadata: None,
+        };
+
+        let new_collection = client
+            .get_or_create_collection("john-doe-g-or-c-collection", None)
+            .await
+            .unwrap_or(default);
+
+        assert_eq!(new_collection.name, "john-doe-g-or-c-collection");
+
+        let _ = client.delete_collection(&new_collection.name).await.unwrap();
+    }
+
 }
