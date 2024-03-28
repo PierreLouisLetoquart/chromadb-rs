@@ -5,7 +5,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::error::Error;
 use url::Url;
 
 /// Chroma Client instance.
@@ -39,12 +38,19 @@ impl ChromaClient {
     }
 
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
-    pub async fn heartbeat(&self) -> Result<u64, Box<dyn Error>> {
+    pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
         let res = reqwest::get(&format!("{}/api/v1/heartbeat", self.path))
-            .await?
+            .await
+            .map_err(|e| ChromaClientError::RequestError(e))?;
+
+        let res_text = res
             .text()
-            .await?;
-        let body_json: HeartbeatResponse = serde_json::from_str(&res)?;
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        let body_json: HeartbeatResponse = serde_json::from_str(&res_text)
+            .map_err(|e| ChromaClientError::ResponseParseError(e))?;
+
         Ok(body_json.nanosecond_heartbeat)
     }
 
