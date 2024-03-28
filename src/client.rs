@@ -1,10 +1,12 @@
 use crate::collection::Collection;
+use crate::error::ChromaClientError;
 use reqwest::header::{HeaderMap, ACCEPT, CONTENT_TYPE};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
+use url::Url;
 
 /// Chroma Client instance.
 #[derive(Debug, Clone)]
@@ -51,11 +53,15 @@ impl ChromaClient {
         &self,
         name: &str,
         metadata: Option<HashMap<String, String>>,
-    ) -> Result<Collection, Box<dyn Error>> {
-        let url = format!(
-            "{}/api/v1/collections?tenant={}&database={}",
-            self.path, self.tenant, self.database
-        );
+    ) -> Result<Collection, ChromaClientError> {
+        let url = Url::parse_with_params(
+            &format!("{}/api/v1/collections", self.path),
+            &[
+                ("tenant", self.tenant.as_str()),
+                ("database", self.database.as_str()),
+            ],
+        )
+        .map_err(ChromaClientError::UrlParseError)?;
 
         let headers = Self::req_headers();
 
@@ -71,11 +77,16 @@ impl ChromaClient {
             .headers(headers)
             .json(&request)
             .send()
-            .await?
-            .text()
-            .await?;
+            .await
+            .map_err(ChromaClientError::RequestError)?;
 
-        let response_json: CreateCollectionResponse = serde_json::from_str(&response)?;
+        let response_text = response
+            .text()
+            .await
+            .map_err(|e| ChromaClientError::ResponseError(e))?;
+
+        let response_json: CreateCollectionResponse = serde_json::from_str(&response_text)
+            .map_err(|e| ChromaClientError::ResponseParseError(e))?;
 
         // TODO: unwrap properly the metadata !
         Ok(Collection {
@@ -123,7 +134,6 @@ impl ChromaClient {
             metadata: None,
         })
     }
-
 
     /// Delete a collection with the given name.
     pub async fn delete_collection(&self, name: &str) -> Result<(), Box<dyn Error>> {
@@ -213,7 +223,10 @@ mod tests {
 
         assert_eq!(new_collection.name, "john-doe-collection");
 
-        let _ = client.delete_collection(&new_collection.name).await.unwrap();
+        let _ = client
+            .delete_collection(&new_collection.name)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -237,7 +250,9 @@ mod tests {
 
         assert_eq!(new_collection.name, "john-doe-g-or-c-collection");
 
-        let _ = client.delete_collection(&new_collection.name).await.unwrap();
+        let _ = client
+            .delete_collection(&new_collection.name)
+            .await
+            .unwrap();
     }
-
 }
