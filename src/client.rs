@@ -11,8 +11,6 @@ use url::Url;
 #[derive(Debug, Clone)]
 pub struct ChromaClient {
     path: String,
-    tenant: String,
-    database: String,
     client: Client,
     headers: HeaderMap,
 }
@@ -23,8 +21,6 @@ impl ChromaClient {
         let http = if params.ssl { "https" } else { "http" };
         ChromaClient {
             path: format!("{}://{}:{}", http, params.host, params.port),
-            tenant: String::from("default_tenant"),
-            database: String::from("default_database"),
             client: Client::new(),
             headers: params.headers.unwrap_or(HeaderMap::new()),
         }
@@ -56,12 +52,14 @@ impl ChromaClient {
         &self,
         name: &str,
         metadata: Option<HashMap<String, String>>,
+        tenant: Option<&str>,
+        database: Option<&str>,
     ) -> Result<Collection, ChromaClientError> {
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
-                ("tenant", self.tenant.as_str()),
-                ("database", self.database.as_str()),
+                ("tenant", tenant.unwrap_or("default_tenant")),
+                ("database", database.unwrap_or("default_database")),
             ],
         )
         .map_err(ChromaClientError::UrlParseError)?;
@@ -105,12 +103,14 @@ impl ChromaClient {
         &self,
         name: &str,
         metadata: Option<HashMap<String, String>>,
+        tenant: Option<&str>,
+        database: Option<&str>,
     ) -> Result<Collection, ChromaClientError> {
         let url = Url::parse_with_params(
             &format!("{}/api/v1/collections", self.path),
             &[
-                ("tenant", self.tenant.as_str()),
-                ("database", self.database.as_str()),
+                ("tenant", tenant.unwrap_or("default_tenant")),
+                ("database", database.unwrap_or("default_database")),
             ],
         )
         .map_err(ChromaClientError::UrlParseError)?;
@@ -150,10 +150,18 @@ impl ChromaClient {
     }
 
     /// Delete a collection with the given name.
-    pub async fn delete_collection(&self, name: &str) -> Result<(), ChromaClientError> {
+    pub async fn delete_collection(
+        &self,
+        name: &str,
+        tenant: Option<&str>,
+        database: Option<&str>,
+    ) -> Result<(), ChromaClientError> {
         let url = format!(
             "{}/api/v1/collections/{}?tenant={}&database={}",
-            self.path, name, self.tenant, self.database
+            self.path,
+            name,
+            tenant.unwrap_or("default_tenant"),
+            database.unwrap_or("default_database")
         );
 
         let mut headers = self.headers.clone();
@@ -266,7 +274,10 @@ mod tests {
             metadata: None,
         };
 
-        let new_collection = match client.create_collection("john-doe-collection", None).await {
+        let new_collection = match client
+            .create_collection("john-doe-collection", None, None, None)
+            .await
+        {
             Ok(new_collection) => new_collection,
             Err(ChromaClientError::RequestError(e)) => {
                 eprintln!("Error during create_collection: {}", e);
@@ -280,7 +291,10 @@ mod tests {
 
         assert_eq!(new_collection.name, "john-doe-collection");
 
-        match client.delete_collection(&new_collection.name).await {
+        match client
+            .delete_collection(&new_collection.name, None, None)
+            .await
+        {
             Ok(_) => {}
             Err(ChromaClientError::RequestError(e)) => {
                 eprintln!("Error during delete_collection: {}", e);
@@ -307,7 +321,7 @@ mod tests {
         };
 
         let new_collection = match client
-            .get_or_create_collection("john-doe-g-or-c-collection", None)
+            .get_or_create_collection("john-doe-g-or-c-collection", None, None, None)
             .await
         {
             Ok(new_collection) => new_collection,
@@ -323,7 +337,10 @@ mod tests {
 
         assert_eq!(new_collection.name, "john-doe-g-or-c-collection");
 
-        match client.delete_collection(&new_collection.name).await {
+        match client
+            .delete_collection(&new_collection.name, None, None)
+            .await
+        {
             Ok(_) => {}
             Err(ChromaClientError::RequestError(e)) => {
                 eprintln!("Error during delete_collection: {}", e);

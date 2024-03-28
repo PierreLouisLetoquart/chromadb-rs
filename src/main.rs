@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let new_collection = client
         .create_collection(
-            "crea",
+            "test-collection-rs",
             Some(HashMap::from([
                 (
                     "description".to_string(),
@@ -30,12 +30,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ),
                 ("wtf".to_string(), "hard to deserialize...".to_string()),
             ])),
+            None, // e.g. default tenant
+            None, // e.g. default database
         )
         .await?;
 
     println!("{:?}", new_collection);
 
-    let _ = client.delete_collection("crea").await?;
+    let _ = client
+        .delete_collection("test-collection-rs", None, None)
+        .await?;
 
     Ok(())
 }
