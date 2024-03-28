@@ -41,7 +41,9 @@ impl ChromaClient {
 
     /// Get the current time in nanoseconds since epoch. Used to check if the server is alive.
     pub async fn heartbeat(&self) -> Result<u64, ChromaClientError> {
-        let res = self.client.get(&format!("{}/api/v1/heartbeat", self.path))
+        let res = self
+            .client
+            .get(&format!("{}/api/v1/heartbeat", self.path))
             .headers(self.headers.clone())
             .send()
             .await
@@ -297,7 +299,10 @@ mod tests {
             metadata: None,
         };
 
-        let new_collection = match client.get_or_create_collection("john-doe-g-or-c-collection", None).await {
+        let new_collection = match client
+            .get_or_create_collection("john-doe-g-or-c-collection", None)
+            .await
+        {
             Ok(new_collection) => new_collection,
             Err(ChromaClientError::RequestError(e)) => {
                 eprintln!("Error during get_or_create_collection: {}", e);
