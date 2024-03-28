@@ -84,6 +84,23 @@ impl ChromaClient {
             metadata: None,
         })
     }
+
+    pub async fn delete_collection(&self, name: &str) -> Result<(), Box<dyn Error>> {
+        let url = format!(
+            "{}/api/v1/collections/{}?tenant={}&database={}",
+            self.path, name, self.tenant, self.database
+        );
+
+        let headers = Self::req_headers();
+
+        let response = self.client.delete(url).headers(headers).send().await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err("Unable to delete collection".into())
+        }
+    }
 }
 
 /// The parameters to create a new client.
@@ -132,5 +149,29 @@ mod tests {
         let hb = client.heartbeat().await.unwrap_or(default);
 
         assert_ne!(hb, default);
+    }
+
+    #[tokio::test]
+    async fn create_and_delete() {
+        let client = ChromaClient::new(ChromaClientParams {
+            host: "localhost".to_string(),
+            port: "8000".to_string(),
+            ssl: false,
+        });
+
+        let default = Collection {
+            name: "default-collection".into(),
+            id: "null".into(),
+            metadata: None,
+        };
+
+        let new_collection = client
+            .create_collection("john-doe-collection", None)
+            .await
+            .unwrap_or(default);
+
+        assert_eq!(new_collection.name, "john-doe-collection");
+
+        let _ = client.delete_collection(&new_collection.name).await.unwrap();
     }
 }

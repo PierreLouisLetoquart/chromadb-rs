@@ -1,5 +1,5 @@
 use chromadb_rs::client::{ChromaClient, ChromaClientParams};
-use std::{error::Error, result::Result, collections::HashMap};
+use std::{collections::HashMap, error::Error, result::Result};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -27,6 +27,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
 
     println!("{:?}", new_collection);
+
+    let _ = client.delete_collection("crea").await?;
 
     Ok(())
 }
